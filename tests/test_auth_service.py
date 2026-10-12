@@ -41,12 +41,12 @@ def test_register_rolls_back_on_integrity_error():
 
     session.rollback.assert_called_once()
 
-def test_refresh_returns_new_access_token(db_client, db_session):
+def test_refresh_rotates_refresh_token(db_client, db_session):
     register_response = db_client.post(
         "/auth/register",
         json={
             "email": "mario@example.com",
-            "password": "Password123!",
+            "password": "string123",
         },
     )
 
@@ -56,17 +56,29 @@ def test_refresh_returns_new_access_token(db_client, db_session):
         "/auth/login",
         json={
             "email": "mario@example.com",
-            "password": "Password123!",
+            "password": "string123",
         },
     )
 
-    refresh_token = login_response.json()["refresh_token"]
+    assert login_response.status_code == 200
+
+    old_refresh_token = login_response.json()["refresh_token"]
 
     service = AuthService(db_session)
-
-    access_token = service.refresh(refresh_token)
+    access_token, new_refresh_token = service.refresh(old_refresh_token)
 
     assert access_token
+    assert new_refresh_token
+    assert new_refresh_token != access_token
+
+    with pytest.raises(InvalidRefreshTokenError):
+        service.refresh(old_refresh_token)
+
+    new_access_token, next_refresh_token = service.refresh(new_refresh_token)
+
+    assert new_access_token
+    assert next_refresh_token
+    assert next_refresh_token != new_access_token
 
 def test_refresh_rejects_unknown_token(db_session):
     service = AuthService(db_session)

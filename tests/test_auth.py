@@ -961,6 +961,17 @@ def test_change_password_changes_password(db_client):
 
     assert new_login_response.status_code == 200
 
+    new_access_token = new_login_response.json()["access_token"]
+
+    new_me_response = db_client.get(
+        "/auth/me",
+        headers={
+            "Authorization": f"Bearer {new_access_token}",
+        },
+    )
+
+    assert new_me_response.status_code == 200
+
 def test_change_password_rejects_wrong_current_password(db_client):
     register_response = db_client.post(
         "/auth/register",

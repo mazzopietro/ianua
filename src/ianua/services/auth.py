@@ -94,23 +94,29 @@ class AuthService:
 
         return access_token, refresh_token
 
-    def refresh(self, refresh_token: str) -> str:
+    def refresh(self, refresh_token: str) -> tuple[str, str]:
         token_hash = hash_refresh_token(refresh_token)
 
-        stored_token = self.refresh_token_repository.get_by_hash_for_update(token_hash)
+        stored_token = self.refresh_token_repository.get_by_hash(token_hash)
 
         if stored_token is None:
             raise InvalidRefreshTokenError()
 
-        if stored_token.revoked_at is not None:
-            raise InvalidRefreshTokenError()
+        user_id = stored_token.user_id
 
-        if stored_token.expires_at <= datetime.now(timezone.utc):
-            raise InvalidRefreshTokenError()
-
-        user = self.user_repository.get_by_id(stored_token.user_id)
+        user = self.user_repository.get_by_id_for_update(user_id)
 
         if user is None or not user.is_active:
+            raise InvalidRefreshTokenError()
+
+        stored_token = self.refresh_token_repository.get_by_hash_for_update(token_hash)
+
+        if (
+            stored_token is None
+            or stored_token.user_id != user.id
+            or stored_token.revoked_at is not None
+            or stored_token.expires_at <= datetime.now(timezone.utc)
+        ):
             raise InvalidRefreshTokenError()
 
         stored_token.revoked_at = datetime.now(timezone.utc)
@@ -157,7 +163,12 @@ class AuthService:
         return deleted
 
     def _revoke_all_sessions(self, user: User) -> None:
-        user.token_version += 1
+        locked_user = self.user_repository.get_by_id_for_update(user.id)
+
+        if locked_user is None:
+            raise InvalidRefreshTokenError()
+        
+        locked_user.token_version += 1
         self.refresh_token_repository.revoke_all_for_user(user.id)
 
     def revoke_all_sessions(self, user: User) -> None:
@@ -170,9 +181,14 @@ class AuthService:
         current_password: str,
         new_password: str,
     ) -> None:
-        if not verify_password(current_password, user.password_hash):
+        locked_user = self.user_repository.get_by_id_for_update(user.id)
+
+        if locked_user is None:
+            raise InvalidCredentialsError()
+        
+        if not verify_password(current_password, locked_user.password_hash):
             raise InvalidCredentialsError()
 
-        user.password_hash = hash_password(new_password)
-        self._revoke_all_sessions(user)
+        locked_user.password_hash = hash_password(new_password)
+        self._revoke_all_sessions(locked_user)
         self._commit()

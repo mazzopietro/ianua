@@ -19,6 +19,16 @@ class UserRepository:
 
         return self.session.scalar(statement)
 
+    def get_by_id_for_update(self, user_id: uuid.UUID) -> User | None:
+        statement = (
+            select(User)
+            .where(User.id == user_id)
+            .with_for_update()
+            .execution_options(populate_existing=True) # SQLAlchemy updates the existing session's object with the data retrieved from the db
+        )
+
+        return self.session.scalar(statement)
+
     def create(self, user: User) -> User:
         self.session.add(user)
         self.session.flush()
