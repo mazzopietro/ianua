@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from ianua.models import User
 
+
 class UserRepository:
     def __init__(self, session: Session):
         self.session = session

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from ianua.core.database import Base
 from ianua.models.role import Role
 
+
 class User(Base):
     __tablename__ = "users"
 

@@ -1,13 +1,10 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, create_engine
-from sqlalchemy import pool
-
 from alembic import context
+from sqlalchemy import create_engine, pool
 
-from ianua.core.database import Base
-from ianua.models import User
 from ianua.core.config import settings
+from ianua.core.database import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

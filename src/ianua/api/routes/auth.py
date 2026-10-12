@@ -1,16 +1,16 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from ianua.api.dependencies import get_db, get_current_user, require_roles
-from ianua.models import User, Role
+from ianua.api.dependencies import get_current_user, get_db, require_roles
+from ianua.models import Role, User
 from ianua.schemas import (
+    ChangePasswordRequest,
+    ErrorResponse,
     RefreshTokenRequest,
     TokenResponse,
     UserCreate,
     UserLogin,
     UserResponse,
-    ErrorResponse,
-    ChangePasswordRequest,
 )
 from ianua.services.auth import AuthService
 

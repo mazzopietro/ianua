@@ -1,12 +1,13 @@
-import uuid
 import time
-import pytest
+import uuid
 
+import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
 from ianua.core.security import hash_password
 from ianua.models import User
+
 
 def test_user_timestamps_on_create(db_session):
     user = User(

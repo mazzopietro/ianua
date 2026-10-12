@@ -12,6 +12,7 @@ from ianua.services.auth import (
     InvalidRefreshTokenError,
 )
 
+
 def test_concurrent_refresh_only_succeeds_once(db_engine):
     email = f"{uuid4().hex}@example.com"
     password = "string123"

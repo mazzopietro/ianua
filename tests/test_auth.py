@@ -1,10 +1,11 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 
 from ianua.core.security import hash_refresh_token
-from ianua.models import User, Role, RefreshToken
+from ianua.models import RefreshToken, Role, User
 from ianua.services.auth import AuthService
+
 
 def test_register(db_client, db_session):
     response = db_client.post(
@@ -558,7 +559,7 @@ def test_refresh_rejects_expired_token(db_client, db_session):
         .one()
     )
 
-    stored_token.expires_at = datetime.now(timezone.utc) - timedelta(minutes=1)
+    stored_token.expires_at = datetime.now(UTC) - timedelta(minutes=1)
 
     db_session.flush()
 

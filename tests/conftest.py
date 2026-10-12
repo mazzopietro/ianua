@@ -1,14 +1,14 @@
-import logging
 import pytest
 from alembic import command
 from alembic.config import Config
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
-from fastapi.testclient import TestClient
 
 from ianua.api.dependencies import get_db
 from ianua.core.config import settings
 from ianua.main import app
+
 
 @pytest.fixture
 def client():

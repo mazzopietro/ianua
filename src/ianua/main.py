@@ -1,4 +1,5 @@
 import logging
+
 from fastapi import FastAPI
 
 from ianua.api.exceptions import (
@@ -10,21 +11,18 @@ from ianua.api.exceptions import (
     invalid_authentication_credentials_handler,
     invalid_credentials_handler,
     invalid_refresh_token_handler,
-    user_already_exists_handler,
     unexpected_error_handler,
+    user_already_exists_handler,
 )
-
-from ianua.api.routes.health import router as health_router
+from ianua.api.middleware import request_logging_middleware
 from ianua.api.routes.auth import router as auth_router
+from ianua.api.routes.health import router as health_router
 from ianua.core.config import settings
 from ianua.services.auth import (
     InvalidCredentialsError,
     InvalidRefreshTokenError,
     UserAlreadyExistsError,
 )
-
-from ianua.api.middleware import request_logging_middleware
-
 
 logger = logging.getLogger("ianua")
 

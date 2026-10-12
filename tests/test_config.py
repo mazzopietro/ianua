@@ -3,6 +3,7 @@ from pydantic import ValidationError
 
 from ianua.core.config import Settings
 
+
 def valid_settings(**overrides) -> dict:
     values = {
         "database_url": "postgresql+psycopg://user:password@localhost:5432/app",

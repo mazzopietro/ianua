@@ -2,6 +2,7 @@ import uuid
 
 from fastapi.testclient import TestClient
 
+
 def test_health_response_contains_request_id(client: TestClient) -> None:
     response = client.get("/health")
 

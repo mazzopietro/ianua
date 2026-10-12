@@ -1,6 +1,4 @@
-from fastapi.testclient import TestClient
 
-from ianua.main import app
 
 def test_health(client):
     response = client.get("/health")

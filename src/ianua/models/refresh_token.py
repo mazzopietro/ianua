@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ianua.core.database import Base
 from ianua.models.user import User
 
+
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
 
@@ -46,5 +47,5 @@ class RefreshToken(Base):
         nullable=False,
     )
 
-    user: Mapped["User"] = relationship()
+    user: Mapped[User] = relationship()
 

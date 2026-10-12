@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock
 
 import pytest
@@ -6,18 +6,19 @@ from sqlalchemy.exc import IntegrityError
 
 from ianua.core.security import (
     generate_refresh_token,
-    hash_refresh_token,
     hash_password,
+    hash_refresh_token,
     verify_password,
 )
 from ianua.models import RefreshToken, User
 from ianua.schemas import UserCreate
 from ianua.services.auth import (
     AuthService,
-    InvalidRefreshTokenError,
     InvalidCredentialsError,
+    InvalidRefreshTokenError,
     UserAlreadyExistsError,
 )
+
 
 def test_register_rolls_back_on_integrity_error():
     session = Mock()
@@ -100,7 +101,7 @@ def test_refresh_rejects_expired_token(db_session):
     stored_token = RefreshToken(
         user_id = user.id,
         token_hash = hash_refresh_token(refresh_token),
-        expires_at = datetime.now(timezone.utc) - timedelta(days=1),
+        expires_at = datetime.now(UTC) - timedelta(days=1),
     )
 
     db_session.add(stored_token)
@@ -125,8 +126,8 @@ def test_refresh_rejects_revoked_token(db_session):
     stored_token = RefreshToken(
         user_id = user.id,
         token_hash = hash_refresh_token(refresh_token),
-        expires_at = datetime.now(timezone.utc) + timedelta(days=1),
-        revoked_at = datetime.now(timezone.utc),
+        expires_at = datetime.now(UTC) + timedelta(days=1),
+        revoked_at = datetime.now(UTC),
     )
 
     db_session.add(stored_token)
@@ -152,7 +153,7 @@ def test_refresh_rejects_inactive_user(db_session):
     stored_token = RefreshToken(
         user_id=user.id,
         token_hash=hash_refresh_token(refresh_token),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
     )
 
     db_session.add(stored_token)
@@ -177,7 +178,7 @@ def test_logout_revokes_refresh_token(db_session):
     stored_token = RefreshToken(
         user_id=user.id,
         token_hash=hash_refresh_token(refresh_token),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
     )
 
     db_session.add(stored_token)
@@ -203,7 +204,7 @@ def test_cleanup_refresh_tokens(db_session):
     db_session.add(user)
     db_session.flush()
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     expired_token = RefreshToken(
         user_id = user.id,
@@ -260,7 +261,7 @@ def test_revoke_all_sessions_increments_token_version(db_session):
     stored_token = RefreshToken(
         user_id=user.id,
         token_hash=hash_refresh_token(refresh_token),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7)
+        expires_at=datetime.now(UTC) + timedelta(days=7)
     )
 
     db_session.add(stored_token)
@@ -331,7 +332,7 @@ def test_change_password_revokes_all_sessions(db_session):
     stored_token = RefreshToken(
         user_id=user.id,
         token_hash=hash_refresh_token(refresh_token),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
     )
 
     db_session.add(stored_token)
@@ -366,7 +367,7 @@ def test_deleting_user_cascades_refresh_tokens(db_session):
     refresh_token = RefreshToken(
         user_id=user.id,
         token_hash="a" * 64,
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
     )
 
     db_session.add(refresh_token)

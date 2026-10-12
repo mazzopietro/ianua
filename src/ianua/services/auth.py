@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -13,6 +13,7 @@ from ianua.core.security import (
 from ianua.models import RefreshToken, User
 from ianua.repositories import RefreshTokenRepository, UserRepository
 from ianua.schemas import UserCreate, UserLogin
+
 
 class UserAlreadyExistsError(Exception):
     pass
@@ -85,7 +86,7 @@ class AuthService:
         refresh_token_model = RefreshToken(
             user_id = user.id,
             token_hash = hash_refresh_token(refresh_token),
-            expires_at = datetime.now(timezone.utc) + timedelta(days=7),
+            expires_at = datetime.now(UTC) + timedelta(days=7),
         )
 
         self.refresh_token_repository.create(refresh_token_model)
@@ -115,18 +116,18 @@ class AuthService:
             stored_token is None
             or stored_token.user_id != user.id
             or stored_token.revoked_at is not None
-            or stored_token.expires_at <= datetime.now(timezone.utc)
+            or stored_token.expires_at <= datetime.now(UTC)
         ):
             raise InvalidRefreshTokenError()
 
-        stored_token.revoked_at = datetime.now(timezone.utc)
+        stored_token.revoked_at = datetime.now(UTC)
 
         new_refresh_token = generate_refresh_token()
 
         new_refresh_token_model = RefreshToken(
             user_id=user.id,
             token_hash=hash_refresh_token(new_refresh_token),
-            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+            expires_at=datetime.now(UTC) + timedelta(days=7),
         )
 
         self.refresh_token_repository.create(new_refresh_token_model)

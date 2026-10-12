@@ -1,10 +1,11 @@
 import logging
-import pytest
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from ianua.api.exceptions import unexpected_error_handler
+
 
 @pytest.fixture
 def error_client() -> TestClient:

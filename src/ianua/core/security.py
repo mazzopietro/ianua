@@ -1,10 +1,10 @@
-import uuid
-from datetime import datetime, timedelta, timezone
-from pwdlib import PasswordHash
-
-import jwt
 import hashlib
 import secrets
+import uuid
+from datetime import UTC, datetime, timedelta
+
+import jwt
+from pwdlib import PasswordHash
 
 from ianua.core.config import settings
 
@@ -20,7 +20,7 @@ def verify_password(password: str, hashed_password: str) -> bool:
     return password_hash.verify(password, hashed_password)
 
 def create_access_token(user_id: str, token_version: int) -> str:
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_access_token_expire_minutes)
+    expires_at = datetime.now(UTC) + timedelta(minutes=settings.jwt_access_token_expire_minutes)
 
     payload = {
         "sub": user_id,

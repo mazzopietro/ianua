@@ -1,5 +1,4 @@
-from collections.abc import Generator
-from typing import Callable
+from collections.abc import Callable, Generator
 
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -7,18 +6,17 @@ from sqlalchemy.orm import Session
 
 from ianua.api.exceptions import (
     AuthenticationRequiredError,
-    InsufficientPermissionError, 
+    InsufficientPermissionError,
     InvalidAuthenticationCredentialsError,
 )
-
 from ianua.core.database import SessionLocal
 from ianua.core.security import InvalidTokenError, decode_access_token
-from ianua.models import User, Role
+from ianua.models import Role, User
 from ianua.repositories import UserRepository
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
-def get_db() -> Generator[Session, None, None]:
+def get_db() -> Generator[Session]:
     db = SessionLocal()
 
     try:
