@@ -170,7 +170,7 @@ class AuthService:
             raise InvalidRefreshTokenError()
         
         locked_user.token_version += 1
-        self.refresh_token_repository.revoke_all_for_user(user.id)
+        self.refresh_token_repository.revoke_all_for_user(locked_user.id)
 
     def revoke_all_sessions(self, user: User) -> None:
         self._revoke_all_sessions(user)

@@ -27,6 +27,7 @@ class RefreshTokenRepository:
             select(RefreshToken)
             .where(RefreshToken.token_hash == token_hash)
             .with_for_update()
+            .execution_options(populate_existing=True)
         )
 
         return self.session.scalar(statement)
