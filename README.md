@@ -174,6 +174,78 @@ Configure the test environment and test database according to the project's test
 
 In production, debug mode must be disabled and the JWT secret must not use a placeholder value.
 
+## Running with Docker
+
+The application can be run using [Docker](https://docs.docker.com/get-docker/) Compose, which starts the FastAPI application and a PostgreSQL database.
+
+### Configuration
+
+Create a `.env.docker` file in the project root using `.env.example` as a reference, and configure the required environment variables.
+
+At minimum, configure:
+
+* `POSTGRES_DB`
+* `POSTGRES_USER`
+* `POSTGRES_PASSWORD`
+* `DATABASE_URL`
+* `JWT_SECRET_KEY`
+
+Make sure `DATABASE_URL` points to the PostgreSQL service using `db` as the hostname, for example:
+
+`postgresql+psycopg://ianua:your_password@db:5432/ianua`
+
+Use a sufficiently long, randomly generated `JWT_SECRET_KEY`. Do not commit `.env.docker` or other files containing secrets.
+
+### Build and start the services
+
+Build the API image:
+
+```bash
+docker compose --env-file .env.docker build api
+```
+
+Start PostgreSQL:
+
+```bash
+docker compose --env-file .env.docker up -d db
+```
+
+Apply database migrations:
+
+```bash
+docker compose --env-file .env.docker run --rm api alembic upgrade head
+```
+
+Start the API:
+
+```bash
+docker compose --env-file .env.docker up -d api
+```
+
+Once the database has been initialized and migrations have been applied, start both services with:
+
+```bash
+docker compose --env-file .env.docker up -d
+```
+
+### Access the API
+
+Once the API is running, open:
+
+* API: http://localhost:8000
+* Interactive API documentation: http://localhost:8000/docs
+* Alternative API documentation: http://localhost:8000/redoc
+
+### Stop the services
+
+Stop the containers without deleting the persistent database volume:
+
+```bash
+docker compose --env-file .env.docker down
+```
+
+PostgreSQL data is stored in a named Docker volume and persists when containers are stopped or removed. **Do not use `docker compose down -v` unless you intentionally want to delete the database volume.**
+
 ## Project status
 
 Ianua is under active development.
