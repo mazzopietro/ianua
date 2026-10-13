@@ -9,7 +9,7 @@ def main() -> None:
 
     uvicorn.run(
         "ianua.main:app",
-        host="127.0.0.1",
+        host="0.0.0.0",
         port=8000,
         reload=settings.debug,
         log_config=None,
