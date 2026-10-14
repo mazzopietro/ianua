@@ -13,6 +13,18 @@ class Settings(BaseSettings):
     database_url: str
     test_database_url: str | None = None
 
+    redis_url: str = "redis://localhost:6379/0"
+    redis_rate_limit_enabled: bool = True
+
+    rate_limit_register_requests: int = Field(default=5, gt=0)
+    rate_limit_register_window_seconds: int = Field(default=900, gt=0)
+
+    rate_limit_login_requests: int = Field(default=10, gt=0)
+    rate_limit_login_window_seconds: int = Field(default=60, gt=0)
+
+    rate_limit_refresh_requests: int = Field(default=30, gt=0)
+    rate_limit_refresh_window_seconds: int = Field(default=60, gt=0)
+
     jwt_secret_key: str = Field(min_length=32)
     jwt_algorithm: Literal["HS256"] = "HS256"
     jwt_access_token_expire_minutes: int = Field(default=30, gt=0)
