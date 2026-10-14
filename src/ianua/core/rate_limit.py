@@ -21,15 +21,18 @@ _INCREMENT_SCRIPT = """
 """
 
 class RedisRateLimiter:
-    def __init__(self, redis: Redis) -> None:
+    def __init__(self, redis: Redis, *, key_prefix: str = "ianua") -> None:
         self._redis = redis
+        self._key_prefix = key_prefix
 
     async def check(self, *, key: str, limit: int, window_seconds: int) -> None:
+        redis_key = f"{self._key_prefix}:rate-limit:{key}"
+
         try:
             result = await self._redis.eval(
                 _INCREMENT_SCRIPT,
                 1,
-                key,
+                redis_key,
                 window_seconds,
             )
         except RedisError as exc:

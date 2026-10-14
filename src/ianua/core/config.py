@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     test_database_url: str | None = None
 
     redis_url: str = "redis://localhost:6379/0"
+    redis_key_prefix: str = "ianua"
     redis_rate_limit_enabled: bool = True
 
     rate_limit_register_requests: int = Field(default=5, gt=0)

@@ -3,6 +3,10 @@ import logging
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
+from ianua.core.rate_limit import (
+    RateLimiterExceededError,
+    RateLimiterUnavailableError,
+)
 from ianua.services.auth import (
     InvalidCredentialsError,
     InvalidRefreshTokenError,
@@ -97,9 +101,31 @@ async def insufficient_permission_handler(
         message="Admin access required",
     )
 
+async def rate_limiter_exceeded_handler(
+    request: Request,
+    exc: RateLimiterExceededError,
+) -> JSONResponse:
+    return error_response(
+        status_code=429,
+        code="RATE_LIMIT_EXCEEDED",
+        message="Too many requests",
+        headers={"Retry-After": str(exc.retry_after_seconds)},
+    )
+
+async def rate_limiter_unavailable_handler(
+    request: Request,
+    exc: RateLimiterUnavailableError,
+) -> JSONResponse:
+    return error_response(
+        status_code=503,
+        code="RATE_LIMITER_UNAVAILABLE",
+        message="Rate limiting service is temporarily unavailable",
+        headers={"Retry-After": "1"}
+    )
+
 async def unexpected_error_handler(
-        request: Request,
-        exc: Exception,
+    request: Request,
+    exc: Exception,
 ) -> JSONResponse:
     request_id = getattr(request.state, "request_id", None)
 
