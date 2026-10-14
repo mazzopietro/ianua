@@ -66,10 +66,15 @@ def test_settings_reject_same_database_for_tests_and_production():
             )
         )
 
-def test_settings_accept_default_rate_limit_configuration():
-    settings = Settings(**valid_settings())
+def test_settings_accept_default_rate_limit_configuration(monkeypatch):
+    monkeypatch.delenv("REDIS_URL", raising=False)
 
-    assert settings.redis_url == "redis://localhost:6380/1"
+    settings = Settings(
+        **valid_settings(),
+        _env_file=None,
+    )
+
+    assert settings.redis_url == "redis://localhost:6379/0"
     assert settings.redis_rate_limit_enabled is True
     assert settings.rate_limit_register_requests == 5
     assert settings.rate_limit_register_window_seconds == 900
