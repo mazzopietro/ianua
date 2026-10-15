@@ -16,6 +16,10 @@ def client():
 
     app.dependency_overrides.clear()
 
+@pytest.fixture(autouse=True)
+def disable_rate_limiting_for_tests(monkeypatch):
+    monkeypatch.setattr(settings, "redis_rate_limit_enabled", False)
+
 @pytest.fixture(scope="session")
 def db_engine():
     if settings.test_database_url is None:

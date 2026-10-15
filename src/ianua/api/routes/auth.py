@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from ianua.api.dependencies import get_current_user, get_db, require_roles
+from ianua.core.rate_limit import rate_limit_dependency
 from ianua.models import Role, User
 from ianua.schemas import (
     ChangePasswordRequest,
@@ -31,6 +32,7 @@ router = APIRouter(
 )
 def register(
     data: UserCreate,
+    _: None = Depends(rate_limit_dependency("register")),
     db: Session = Depends(get_db),
 ):
     service = AuthService(db)
@@ -49,10 +51,10 @@ def register(
 )
 def login(
     data: UserLogin,
+    _: None = Depends(rate_limit_dependency("login")),
     db: Session = Depends(get_db),
 ):
     service = AuthService(db)
-
     access_token, refresh_token = service.login(data)
 
     return TokenResponse(
@@ -73,10 +75,10 @@ def login(
 )
 def refresh(
     data: RefreshTokenRequest,
+    _: None = Depends(rate_limit_dependency("refresh")),
     db: Session = Depends(get_db)
 ):
     service = AuthService(db)
-
     access_token, new_refresh_token = service.refresh(data.refresh_token)
     
     return TokenResponse(

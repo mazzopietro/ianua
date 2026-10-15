@@ -1,5 +1,10 @@
+from typing import Literal
+
+from fastapi import Request
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
+
+from ianua.core.config import settings
 
 
 class RateLimiterExceededError(Exception):
@@ -46,3 +51,43 @@ class RedisRateLimiter:
             raise RateLimiterExceededError(
                 retry_after_seconds=max(1, ttl)
             )
+
+RateLimitPolicy = Literal["register", "login", "refresh"]
+
+def rate_limit_dependency(policy: RateLimitPolicy):
+    policies = {
+        "register": (
+            settings.rate_limit_register_requests,
+            settings.rate_limit_register_window_seconds,
+        ),
+        "login": (
+            settings.rate_limit_login_requests,
+            settings.rate_limit_login_window_seconds,
+        ),
+        "refresh": (
+            settings.rate_limit_refresh_requests,
+            settings.rate_limit_refresh_window_seconds,
+        ),
+    }
+
+    limit, window_seconds = policies[policy]
+
+    async def dependency(request: Request) -> None:
+        if not settings.redis_rate_limit_enabled:
+            return
+
+        client = request.client
+        client_ip = client.host if client is not None else "unknown"
+
+        limiter = RedisRateLimiter(
+            request.app.state.redis,
+            key_prefix=settings.redis_key_prefix,
+        )
+
+        await limiter.check(
+            key=f"{policy}:{client_ip}",
+            limit=limit,
+            window_seconds=window_seconds,
+        )
+
+    return dependency
