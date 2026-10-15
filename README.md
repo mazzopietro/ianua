@@ -18,6 +18,10 @@
 * Password hashing with Argon2
 * Environment-based configuration
 * Automated tests with pytest
+* Redis-backed rate limiting for authentication endpoints
+* Configurable per-IP request limits for registration, login and token refresh
+* Atomic Redis counters with automatic expiration
+* Explicit error handling when the rate-limiting service is unavailable
 
 ## Tech stack
 
@@ -25,9 +29,11 @@
 * **FastAPI** — REST API and OpenAPI documentation
 * **PostgreSQL** — relational database
 * **SQLAlchemy** — ORM
+* **Redis** — shared counters for distributed rate limiting
 * **Alembic** — database migrations
 * **PyJWT** — JWT handling
 * **pwdlib + Argon2** — password hashing
+* **redis-py** — asynchronous Redis client 
 * **Pydantic Settings** — application configuration
 * **Uvicorn** — ASGI server
 * **pytest + HTTPX** — testing
@@ -36,6 +42,7 @@
 
 * Python 3.14 or later
 * PostgreSQL
+* Redis
 * [uv](https://docs.astral.sh/uv/) for dependency management
 
 ## Getting started
@@ -77,6 +84,19 @@ TEST_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/DATABASE_TES
 JWT_SECRET_KEY=replace-with-a-strong-random-secret
 JWT_ALGORITHM=HS256
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+REDIS_URL=redis://localhost:6379/0
+REDIS_KEY_PREFIX=ianua
+REDIS_RATE_LIMIT_ENABLED=True
+
+RATE_LIMIT_REGISTER_REQUESTS=5
+RATE_LIMIT_REGISTER_WINDOW_SECONDS=900
+
+RATE_LIMIT_LOGIN_REQUESTS=10
+RATE_LIMIT_LOGIN_WINDOW_SECONDS=60
+
+RATE_LIMIT_REFRESH_REQUESTS=30
+RATE_LIMIT_REFRESH_WINDOW_SECONDS=60
 ```
 
 Create the application and test databases in PostgreSQL before running the service or its tests.
@@ -134,6 +154,30 @@ Authorization: Bearer <access_token>
 
 The login and refresh endpoints return an access token and a refresh token. The access token expiration is configurable through `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`.
 
+### Rate limiting
+
+Ianua uses Redis to enforce configurable request limits on authentication endpoints. Counters are shared across API processes and expire automatically after their configured time window.
+
+The default limits are:
+
+| Endpoint | Maximum requests | Time window |
+| -------- | ----------------: | ----------- |
+| `POST /auth/register` | 5 | 15 minutes |
+| `POST /auth/login` | 10 | 1 minute |
+| `POST /auth/refresh` | 30 | 1 minute |
+
+Limits are applied per client IP address and per endpoint. Requests count toward the limit even if authentication fails or request validation does not succeed.
+
+When a client exceeds a limit, the API returns `429 Too Many Requests`, with error code `RATE_LIMIT_EXCEEDED` and a `Retry-After` header indicating how long to wait before retrying.
+
+Redis is required for rate limiting. If Redis becomes unavailable during a rate-limit check, the API returns `503 Service Unavailable` with error code `RATE_LIMITER_UNAVAILABLE` instead of silently bypassing the protection.
+
+The Redis client is initialized and checked during application startup, and closed during shutdown. If the initial Redis connection check fails, application startup fails.
+
+The rate limiter uses atomic Redis operations and expiring counters. It implements a fixed-window strategy, not a sliding-window algorithm.
+
+**Operational note:** Ianua uses the client IP reported by the ASGI request. If the API runs behind a reverse proxy, configure trusted proxy handling carefully before relying on forwarded client IP headers.
+
 ### Example: health check
 
 ```bash
@@ -158,6 +202,8 @@ uv run pytest
 
 Configure the test environment and test database according to the project's test configuration before running the suite. Use a separate test database to avoid affecting development data.
 
+The test suite includes dedicated rate-limiting tests. These tests require a reachable Redis instance and exercise request limits, HTTP error responses, and Redis failure handling. The GitHub Actions workflow provides Redis as a service for CI runs.
+
 ## Configuration
 
 | Variable                          | Description                                                 |
@@ -171,12 +217,23 @@ Configure the test environment and test database according to the project's test
 | `JWT_SECRET_KEY`                  | Secret used to sign JWTs                                    |
 | `JWT_ALGORITHM`                   | JWT signing algorithm; currently `HS256`                    |
 | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | Access token lifetime in minutes                            |
+| `REDIS_URL` | Redis connection URL |
+| `REDIS_KEY_PREFIX` | Prefix used for Redis rate-limit keys |
+| `REDIS_RATE_LIMIT_ENABLED` | Enables or disables rate limiting |
+| `RATE_LIMIT_REGISTER_REQUESTS` | Maximum registration requests per IP per window |
+| `RATE_LIMIT_REGISTER_WINDOW_SECONDS` | Registration rate-limit window in seconds |
+| `RATE_LIMIT_LOGIN_REQUESTS` | Maximum login requests per IP per window |
+| `RATE_LIMIT_LOGIN_WINDOW_SECONDS` | Login rate-limit window in seconds |
+| `RATE_LIMIT_REFRESH_REQUESTS` | Maximum token-refresh requests per IP per window |
+| `RATE_LIMIT_REFRESH_WINDOW_SECONDS` | Token-refresh rate-limit window in seconds |
+
+The Redis service must be available when the application starts. Disabling rate limiting skips the request checks, but does not remove the application's Redis startup dependency
 
 In production, debug mode must be disabled and the JWT secret must not use a placeholder value.
 
 ## Running with Docker
 
-The application can be run using [Docker](https://docs.docker.com/get-docker/) Compose, which starts the FastAPI application and a PostgreSQL database.
+The application can be run using [Docker](https://docs.docker.com/get-docker/) Compose, which starts the FastAPI application, PostgreSQL, and Redis. Redis is used internally by the API for distributed rate limiting and does not need to expose its port to the host.
 
 ### Configuration
 
@@ -189,6 +246,7 @@ At minimum, configure:
 * `POSTGRES_PASSWORD`
 * `DATABASE_URL`
 * `JWT_SECRET_KEY`
+* `REDIS_URL` — use `redis://redis:6379/0` when running the API through Docker Compose
 
 Make sure `DATABASE_URL` points to the PostgreSQL service using `db` as the hostname, for example:
 
