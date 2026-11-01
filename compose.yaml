@@ -48,6 +48,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head && 
+             PYTHONPATH=src uvicorn ianua.main:app --host 0.0.0.0 --port 8000"
 
 volumes:
   postgres_data:
